@@ -1,0 +1,12 @@
+FROM python:3.9-alpine
+
+ADD bulb_cli.py /
+ADD .git /
+ADD *.py /
+ADD requirements.txt /
+
+RUN apk add --no-cache bash git gcc libc-dev bash-completion coreutils nano gpg
+
+RUN pip install --no-cache-dir -r requirements.txt
+# RUN git config --global --unset commit.gpgsign
+# ENTRYPOINT ["/bulb_cli.py"]
