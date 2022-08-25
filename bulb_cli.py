@@ -48,8 +48,8 @@ import aiohttp
 import copy
 from asyncio.exceptions import CancelledError, TimeoutError
 
-DEFAULT_SEND_TIMEOUT_MS=5000000000
-# DEFAULT_SEND_TIMEOUT_MS=5000
+# DEFAULT_SEND_TIMEOUT_MS=5000000000
+DEFAULT_SEND_TIMEOUT_MS=5000
 
 LOGGER = logging.getLogger(__package__)
 LOGGER.setLevel(level=logging.INFO)
@@ -491,13 +491,13 @@ class KlyqaBulbResponseStatus: #(KlyqaBulbResponse):
         self,
         type: str,
         status: str,
-        color: dict[str, int],
         brightness: dict[str, int],
-        temperature: int,
         mode: str,
         open_slots: int = 0,
         fwversion: str = "",
         sdkversion: str = "",
+        color: dict[str, int] = {},
+        temperature: int = -1,
         active_command: int = 0,
         active_scene: str = 0,
         **kwargs,
@@ -506,7 +506,7 @@ class KlyqaBulbResponseStatus: #(KlyqaBulbResponse):
         # super().__init__(**kwargs)
         self.type = type
         self.status = status
-        self.color = RGBColor(color["red"], color["green"], color["blue"])
+        self.color = RGBColor(color["red"], color["green"], color["blue"]) if color else {}
         self.brightness = brightness["percentage"]
         self.temperature = temperature
         self.active_command = active_command
@@ -609,6 +609,8 @@ class Message:
         return True
 
 
+ConnectionType = Enum("ConnectionType", "cloud local")
+
 class KlyqaBulb:
     """KlyqaBulb"""
 
@@ -625,6 +627,7 @@ class KlyqaBulb:
     _use_thread: asyncio.Task
 
     recv_msg_unproc: list[Message]
+    last_connection_type: ConnectionType
 
     def process_msgs(self):
         for msg in self.recv_msg_unproc:
@@ -650,7 +653,7 @@ class KlyqaBulb:
                 LOGGER.debug(f"got lock... {self.get_name()}")
                 return True
         except asyncio.TimeoutError:
-            print(f'Timeout for getting the lock for bulb "{self.get_name()}"')
+            LOGGER.error(f'Timeout for getting the lock for bulb "{self.get_name()}"')
         except Exception as excp:
             LOGGER.debug(f"different error while trying to lock.")
 
@@ -1377,7 +1380,7 @@ class Klyqa_account:
 
                     while read_broadcast_response:
 
-                        timeout_read = 1.9
+                        timeout_read = 0.4
                         LOGGER.debug("Read again tcp port..")
                         async def read_tcp_task():
                             try:
@@ -1616,7 +1619,7 @@ class Klyqa_account:
                     login_response.status_code != 200
                     and login_response.status_code != 201
                 ):
-                    print(
+                    LOGGER.error(
                         str(login_response.status_code)
                         + ", "
                         + str(login_response.text)
@@ -1709,6 +1712,7 @@ class Klyqa_account:
                                     + f'\tCloud-Connected: {cloud_state["connected"]}'
                                 )
                             bulb.cloud.connected = cloud_state["connected"]
+                            # bulb.last_connection_type = ConnectionType.cloud
 
                             bulb.save_bulb_message(
                                 {**cloud_state, **{"type": "status"}}
@@ -1776,7 +1780,7 @@ class Klyqa_account:
                     LOGGER.info("No server reply for bulb configs. Using cache.")
 
             except Exception as e:
-                print("Error during login to klyqa: " + str(e))
+                LOGGER.error("Error during login to klyqa: " + str(e))
                 return False
         return True
 
@@ -2327,7 +2331,7 @@ class Klyqa_account:
                             )
 
                             ret = await self._send_to_bulbs(
-                                discover_local_args_parsed2, args_in, udp=udp, tcp=tcp, timeout_ms=3000000
+                                discover_local_args_parsed2, args_in, udp=udp, tcp=tcp, timeout_ms=3000
                             )
                             if isinstance(ret, bool) and ret:
                                 return True
@@ -2850,7 +2854,6 @@ class Klyqa_account:
                         try:
                             msg_wait_tasks[i] = loop.create_task(sl(i))
                         except Exception as e:
-                            print("ok")
                             pass
 
 
@@ -3140,7 +3143,8 @@ class Klyqa_account:
             print(f"{uid}: ")
             if msg:
                 try:
-                    LOGGER.debug(f"{json.dumps(json.loads(msg.answer), sort_keys=True, indent=4)}")
+                    LOGGER.info(f"Answer received from {uid}.")
+                    print(f"{json.dumps(json.loads(msg.answer), sort_keys=True, indent=4)}")
                 except:
                     pass
             else:
@@ -3151,19 +3155,19 @@ class Klyqa_account:
         ):
             exit_ret = 1
 
-        parser = get_description_parser()
-        args = ["--request"]
-        args.extend(["--local", "--debug", "--bulb_unitids", f"c4172283e5da92730bb5"])
+        # parser = get_description_parser()
+        # args = ["--request"]
+        # args.extend(["--local", "--debug", "--bulb_unitids", f"c4172283e5da92730bb5"])
 
-        add_config_args(parser=parser)
-        add_command_args(parser=parser)
+        # add_config_args(parser=parser)
+        # add_command_args(parser=parser)
 
-        args_parsed = parser.parse_args(args=args)
+        # args_parsed = parser.parse_args(args=args)
 
-        if not await self._send_to_bulbs(
-            args_parsed, args, udp=self.udp, tcp=self.tcp, timeout_ms=timeout_ms, async_answer_callback=async_answer_callback
-        ):
-            exit_ret = 1
+        # if not await self._send_to_bulbs(
+        #     args_parsed, args, udp=self.udp, tcp=self.tcp, timeout_ms=timeout_ms, async_answer_callback=async_answer_callback
+        # ):
+        #     exit_ret = 1
 
         await self.search_and_send_loop_task_stop()
 
