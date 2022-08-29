@@ -1284,12 +1284,12 @@ class Klyqa_account:
                             r.append(str(i))
                         return r
 
-                    if not args.selectBulb:
-                        name = f' "{bulb.get_name()}"' if bulb.get_name() else ""
-                        LOGGER.info(
-                            f"Bulb{name} response (local network): "
-                            + str(json.dumps(response, sort_keys=True, indent=4))
-                        )
+                    # if not args.selectBulb:
+                    #     name = f' "{bulb.get_name()}"' if bulb.get_name() else ""
+                    #     LOGGER.info(
+                    #         f"Bulb{name} response (local network): "
+                    #         + str(json.dumps(response, sort_keys=True, indent=4))
+                    #     )
 
                 if bulb.u_id and bulb.u_id in self.bulbs:
                     bulb_b = self.bulbs[bulb.u_id]
