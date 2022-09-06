@@ -5,6 +5,9 @@ ADD .git /
 ADD *.py /
 ADD requirements.txt /
 
+RUN apk add --no-cache tzdata
+ENV TZ=Europe/Berlin
+
 RUN apk add --no-cache bash git gcc libc-dev bash-completion coreutils nano gpg
 
 RUN pip install --no-cache-dir -r requirements.txt
