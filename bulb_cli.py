@@ -1213,6 +1213,7 @@ class Klyqa_account:
 
         self.username = username
         self.password = password
+        self.access_token: str = ""
         self.host = PROD_HOST if not host else host
         self.username_cached = False
         self.acc_settings_cached = False
@@ -1681,11 +1682,17 @@ class Klyqa_account:
                     bulb.acc_sets = device
 
                     self.bulbs[format_uid(device["localDeviceId"])] = bulb
-                    try:
-                        cloud_state = asyncio.run(
-                            self.request(
+                    async def req():
+                        try:
+                            ret = await self.request(
                                 f'device/{device["cloudDeviceId"]}/state', timeout=30
                             )
+                            return ret
+                        except:
+                            return None
+                    try:
+                        cloud_state = asyncio.run(
+                            req()
                         )
                         if cloud_state:
                             if "connected" in cloud_state:
@@ -1733,14 +1740,18 @@ class Klyqa_account:
                 queue_printer.stop()
 
                 def get_conf(id, bulb_configs):
-                    try:
-                        config = asyncio.run(
-                            self.request("config/product/" + id, timeout=30)
-                        )
-                    except:
-                        pass
-                    bulb_config: Bulb_config = config
-                    bulb_configs[id] = bulb_config
+                    async def req():
+                        try:
+                            ret = await self.request("config/product/" + id, timeout=30)
+                            return ret
+                        except:
+                            return None
+                    config = asyncio.run(
+                        req()
+                    )
+                    if config:
+                        bulb_config: Bulb_config = config
+                        bulb_configs[id] = bulb_config
 
                 if self.acc_settings and product_ids:
                     threads = [
@@ -1804,6 +1815,7 @@ class Klyqa_account:
         #     **kwargs,
         # )
         if response.status_code != 200:
+            # TODO: make here a right
             raise Exception(response.text)
         return json.loads(response.text)
 
