@@ -1371,7 +1371,7 @@ class Klyqa_account:
 
                             LOGGER.debug(f"sleep task done..")
                         except CancelledError as e:
-                            LOGGER.debug(f"sleep cancelled.")
+                            LOGGER.debug(f"sleep cancelled1.")
                         except Exception as e:
                             LOGGER.debug(f"{e}")
                             pass
@@ -1464,7 +1464,7 @@ class Klyqa_account:
                     pass
                 pass
 
-                if len(self.message_queue_new) == 0 and not len(self.message_queue):
+                if not len(self.message_queue_new) and not len(self.message_queue):
                     try:
                         LOGGER.debug(f"sleep task create (searchandsendloop)..")
                         self.__send_loop_sleep = loop.create_task(asyncio.sleep(SEND_LOOP_MAX_SLEEP_TIME if len(self.message_queue) > 0 else 1000000000))
@@ -1472,7 +1472,7 @@ class Klyqa_account:
                         done, pending = await asyncio.wait([self.__send_loop_sleep])
                         LOGGER.debug(f"sleep task done..")
                     except CancelledError as e:
-                        LOGGER.debug(f"sleep cancelled.")
+                        LOGGER.debug(f"sleep cancelled2.")
                     except Exception as e:
                         LOGGER.debug(f"{e}")
                         pass
@@ -1493,12 +1493,8 @@ class Klyqa_account:
     async def search_and_send_loop_task_stop(self):
         while self.search_and_send_loop_task and not self.search_and_send_loop_task.done():
             LOGGER.debug("stop send and search loop.")
-            if self.__send_loop_sleep:
-                self.__send_loop_sleep.cancel()
             if self.search_and_send_loop_task:
                 self.search_and_send_loop_task.cancel()
-            if self.__send_loop_sleep:
-                self.__send_loop_sleep.cancel()
             try:
                 LOGGER.debug("wait for send and search loop to end.")
                 await asyncio.wait_for(self.search_and_send_loop_task, timeout=0.1)
@@ -1515,7 +1511,7 @@ class Klyqa_account:
 
         if not self.search_and_send_loop_task or self.search_and_send_loop_task.done():
             LOGGER.debug("search and send loop task created.")
-            self.search_and_send_loop_task = loop.create_task(self.search_and_send_to_bulb())
+            self.search_and_send_loop_task = asyncio.create_task(self.search_and_send_to_bulb())
         try:
             self.__send_loop_sleep.cancel()
         except:
@@ -1543,10 +1539,7 @@ class Klyqa_account:
 
         if self.__read_tcp_task:
             self.__read_tcp_task.cancel()
-        # asyncio.run(
-        # self.search_and_send_loop_task_alive() #)
-        # self.search_and_send_loop_task_alive()
-        # loop.run_until_complete(self.search_and_send_loop_task_alive())
+
         self.search_and_send_loop_task_alive()
 
     async def load_username_cache(self):
@@ -1596,16 +1589,6 @@ class Klyqa_account:
         if self.username is not None and self.password is not None:
             try:
                 login_data = {"email": self.username, "password": self.password}
-
-                # login_response = await loop.run_in_executor(
-                #     requests.post(self.host + "/auth/login", json=login_data)
-                # )
-
-                # async with aiohttp.ClientSession() as session:
-                #     async with session.get(
-                #         self.host + "/auth/login", json=login_data
-                #     ) as resp:
-                #         login_response = resp
 
                 login_response = await loop.run_in_executor(
                     None,
@@ -2862,7 +2845,10 @@ class Klyqa_account:
 
 
                     async def async_answer_callback_local(msg, uid):
-                        LOGGER.debug(f"{uid} {msg.msg_queue_sent} msg callback.")
+                        if msg and msg.msg_queue_sent:
+                            LOGGER.debug(f"{uid} {msg.msg_queue_sent} msg callback.")
+                        else:
+                            LOGGER.debug(f"{uid} {msg} msg callback.")
                         if uid in to_send_bulb_uids:
                             to_send_bulb_uids.remove(uid)
                         try:
@@ -2891,7 +2877,7 @@ class Klyqa_account:
                     if args.selectBulb:
                         print(sep_width * "-")
                         # bulbs_working = {k: v for k, v in self.bulbs.items() if v.local.aes_key_confirmed}
-                        bulbs_working = {k: v for k, v in self.bulbs.items() if v.status and v.status.ts > send_started_local}
+                        bulbs_working = {u_id: bulb for u_id, bulb in self.bulbs.items() if (bulb.status and bulb.status.ts > send_started_local) or ((args.cloud or args.tryLocalThanCloud) and bulb.cloud and bulb.cloud.connected)}
                         print(
                             "Found "
                             + str(len(bulbs_working))
