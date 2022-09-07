@@ -825,10 +825,13 @@ AES_KEYs: dict[str, bytes] = {}
 
 PRODUCT_URLS = {
     """TODO: Make permalinks for urls."""
-    "@klyqa.lighting.cw-ww.gu10": "https://www.klyqa.de/produkte/gu10-color-strahler",
+    "@klyqa.lighting.cw-ww.gu10": "https://klyqa.de/produkte/gu10-white-strahler",
+    "@klyqa.lighting.rgb-cw-ww.gu10": "https://klyqa.de/produkte/gu10-color-strahler",
     "@klyqa.lighting.cw-ww.g95": "https://www.klyqa.de/produkte/g95-vintage-lampe",
-    "@klyqa.lighting.rgb-cw-ww.e14": "https://klyqa.de/produkte/gu10-white-strahler",
+    "@klyqa.lighting.rgb-cw-ww.e14": "https://klyqa.de/produkte/e14-color-lampe",
+    "@klyqa.lighting.cw-ww.e14": "https://klyqa.de/produkte/gu10-white-strahler",
     "@klyqa.lighting.rgb-cw-ww.e27": "https://www.klyqa.de/produkte/e27-color-lampe",
+    "@klyqa.lighting.cw-ww.e27": "https://klyqa.de/produkte/e27-white-lampe",
     "@klyqa.cleaning.vc1": "",
 }
 
@@ -1593,7 +1596,7 @@ class Klyqa_account:
                 login_response = await loop.run_in_executor(
                     None,
                     functools.partial(
-                        requests.post, self.host + "/auth/login", json=login_data
+                        requests.post, self.host + "/auth/login", json=login_data, timeout=30
                     ),
                 )
 
