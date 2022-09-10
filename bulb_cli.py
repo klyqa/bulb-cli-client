@@ -2848,9 +2848,9 @@ class Klyqa_account:
 
                     async def async_answer_callback_local(msg, uid):
                         if msg and msg.msg_queue_sent:
-                            LOGGER.debug(f"{uid} {msg.msg_queue_sent} msg callback.")
-                        else:
-                            LOGGER.debug(f"{uid} {msg} msg callback.")
+                            LOGGER.debug(f"{uid} msg callback.")
+                        # else:
+                        #     LOGGER.debug(f"{uid} {msg} msg callback.")
                         if uid in to_send_bulb_uids:
                             to_send_bulb_uids.remove(uid)
                         try:
